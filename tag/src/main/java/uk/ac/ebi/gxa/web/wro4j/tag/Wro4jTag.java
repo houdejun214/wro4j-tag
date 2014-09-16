@@ -23,17 +23,21 @@
 package uk.ac.ebi.gxa.web.wro4j.tag;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+import com.weardex.core.resource.PathMatchingResourcePatternResolver;
+import com.weardex.core.resource.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ro.isdc.wro.WroRuntimeException;
 import ro.isdc.wro.model.factory.XmlModelFactory;
 import ro.isdc.wro.model.group.InvalidGroupNameException;
 
-import javax.annotation.Nullable;
+import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.jsp.JspException;
 import javax.servlet.jsp.JspTagException;
 import javax.servlet.jsp.tagext.TagSupport;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
@@ -122,16 +126,28 @@ public abstract class Wro4jTag extends TagSupport {
         }
     }
 
+    private static PathMatchingResourcePatternResolver pathResolver = new PathMatchingResourcePatternResolver();
+
     private class ContextDirectoryLister implements Wro4jTagRenderer.DirectoryLister {
-        public Collection<String> list(String path) {
-            final String dir = ResourcePath.normalizeDirectory(path);
-            @SuppressWarnings("unchecked")
-            Set<String> resources = pageContext.getServletContext().getResourcePaths(dir);
-            return transform(resources, new Function<String, String>() {
-                public String apply(@Nullable String input) {
-                    return input == null ? null : input.substring(dir.length());
-                }
-            });
+        public Collection<String> list(final String path) throws IOException {
+            ServletContext servletContext = pageContext.getServletContext();
+            if (!pathResolver.getPathMatcher().isPattern(path)) {
+                return Lists.newArrayList(path);
+            } else {
+                final String rootPath = servletContext.getRealPath("/");
+                String pattern = new File(rootPath + path).toURI().toString();
+                Resource[] resources = pathResolver.getResources(pattern);
+                return transform(Lists.newArrayList(resources), new Function<Resource, String>() {
+                    public String apply(Resource input) {
+                        try {
+                            return input == null ? null : input.getFile().getAbsolutePath().substring(rootPath.length());
+                        } catch (IOException e) {
+                            return null;
+                        }
+                    }
+                });
+            }
         }
+
     }
 }

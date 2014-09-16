@@ -22,16 +22,17 @@
 package uk.ac.ebi.gxa.web.wro4j.tag;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.Lists;
+import com.weardex.core.resource.AntPathMatcher;
+import com.weardex.core.resource.PathMatchingResourcePatternResolver;
+import com.weardex.core.utils.PathUtils;
+import com.weardex.core.utils.StringUtils;
 import ro.isdc.wro.model.group.Group;
 import ro.isdc.wro.model.resource.Resource;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.EnumSet;
-import java.util.List;
+import java.util.*;
 
 import static com.google.common.collect.Collections2.filter;
 import static java.util.EnumSet.copyOf;
@@ -44,6 +45,9 @@ public class Wro4jTagRenderer {
     private final Wro4jTagProperties properties;
     private final EnumSet<ResourceHtmlTag> tags;
     private final DirectoryLister lister;
+    //private static final PathMatchingResourcePatternResolver pathResolver = new PathMatchingResourcePatternResolver();
+    private static final Map<String, Collection<Resource>> resourcsCache = new WeakHashMap<>();
+
 
     public Wro4jTagRenderer(GroupResolver groupResolver, Wro4jTagProperties properties, EnumSet<ResourceHtmlTag> tags, DirectoryLister lister) {
         this.groupResolver = groupResolver;
@@ -59,11 +63,11 @@ public class Wro4jTagRenderer {
         }
     }
 
-    private Collection<Resource> collectResources(final Group group) throws Wro4jTagException {
-        return properties.isDebugOn() ? uncompressedResources(group) : compressedBundle(group);
+    private Collection<Resource> collectResources(final Group group) throws Wro4jTagException, IOException {
+        return properties.isDebugOn() ? uncompressedResources( group) : compressedBundle(group);
     }
 
-    private Collection<Resource> compressedBundle(Group group) throws Wro4jTagException {
+    private Collection<Resource> compressedBundle(Group group) throws Wro4jTagException, IOException {
         List<Resource> list = new ArrayList<Resource>();
         for (ResourceHtmlTag type : tags)
             if (group.hasResourcesOfType(type.getType()))
@@ -71,15 +75,28 @@ public class Wro4jTagRenderer {
         return list;
     }
 
-    private Collection<Resource> uncompressedResources(Group group) {
-        return filter(group.getResources(), new Predicate<Resource>() {
-            public boolean apply(@Nullable Resource resource) {
-                return isSupported(resource);
+    private Collection<Resource> uncompressedResources(Group group) throws IOException {
+        String key = StringUtils.join(this.tags,"_") + "@" + group.getName();
+        Collection<Resource> allFiles = resourcsCache.get(key);
+        if (allFiles == null) {
+            Collection<Resource> files = filter(group.getResources(), new Predicate<Resource>() {
+                public boolean apply(Resource resource) {
+                    return isSupported(resource);
+                }
+            });
+            // resolve the ant paths
+            allFiles = Lists.newArrayList();
+            for (Resource res : files) {
+                for (String filename : lister.list(res.getUri())) {
+                    allFiles.add(Resource.create(filename, res.getType()));
+                }
             }
-        });
+            resourcsCache.put(key, allFiles);
+        }
+        return allFiles;
     }
 
-    private Resource resourceForBundle(Group group, ResourceHtmlTag tag) throws Wro4jTagException {
+    private Resource resourceForBundle(Group group, ResourceHtmlTag tag) throws Wro4jTagException, IOException {
         final String template = properties.getNameTemplate().forGroup(group.getName(), tag);
         String path = properties.getResourcePath(tag.getType());
         for (String filename : lister.list(path)) {
@@ -92,7 +109,7 @@ public class Wro4jTagRenderer {
                 " - have you built the compressed versions properly?");
     }
 
-    private String render(String contextPath, Resource resource) {
+    private String render(String contextPath, Resource resource){
         final String uri = ResourcePath.join(contextPath, resource.getUri());
         return ResourceHtmlTag.forType(resource.getType()).render(uri);
     }
@@ -106,6 +123,6 @@ public class Wro4jTagRenderer {
     }
 
     static interface DirectoryLister {
-        Collection<String> list(String path);
+        Collection<String> list(String path) throws IOException;
     }
 }

@@ -22,6 +22,7 @@
 
 package uk.ac.ebi.gxa.web.wro4j.tag;
 
+import com.weardex.core.utils.PathUtils;
 import ro.isdc.wro.model.resource.ResourceType;
 
 import java.util.EnumMap;
@@ -36,7 +37,7 @@ public enum ResourceHtmlTag {
     JS(ResourceType.JS, "js", "<script type=\"text/javascript\" src=\"%s\"></script>");
 
     private static final EnumMap<ResourceType, ResourceHtmlTag> BY_TYPE = newEnumMap(ResourceType.class);
-
+    private static String LessFormat = "<link type=\"text/css\" rel=\"stylesheet/less\" href=\"%s\"/>";
     private final ResourceType type;
     private final String extension;
     private final String tag;
@@ -56,7 +57,18 @@ public enum ResourceHtmlTag {
     }
 
     public String render(String uri) {
+        if (matchExtension("less", uri)) {
+            return String.format(LessFormat, uri);
+        }
         return String.format(tag, uri);
+    }
+
+    public boolean matchExtension(String extension, String uri) {
+        String _extension = PathUtils.getExtension(uri);
+        if (extension.equals(_extension)) {
+            return true;
+        }
+        return false;
     }
 
     public static ResourceHtmlTag forType(ResourceType type) {

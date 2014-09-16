@@ -12,23 +12,26 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring.version>3.0.5.RELEASE</spring.version>
-        <wro4j.version>1.4.0</wro4j.version>
+        <wro4j.version>1.7.6</wro4j.version>
     </properties>
 
     <modules>
         <module>tag</module>
-        <module>example</module>
     </modules>
-
-    <scm>
-        <url>https://github.com/gxa/gxa</url>
-        <connection>scm:git:git://github.com/alf239/wro4j-tag.git</connection>
-        <!--
-             TODO: my apologies for fellow developers, we cannot put a proper URL here due to
-             http://jira.codehaus.org/browse/MRELEASE-381
-             Check https://github.com/alf239/wro4j-tag for proper URL (usually git@github.com:alf239/wro4j-tag.git)
-         -->
-        <developerConnection>scm:git:git://github.com/alf239/wro4j-tag.git</developerConnection>
-    </scm>
-
+    <build>
+        <plugins>
+            <!--Compiler plugin, specify JDK version-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.1</version>
+                <configuration>
+                    <source>1.7</source>
+                    <target>1.7</target>
+                    <meminitial>128m</meminitial>
+                    <maxmem>512m</maxmem>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

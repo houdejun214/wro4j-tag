@@ -42,10 +42,18 @@ public class TagRendererTest {
     @Test
     public void testDebug() throws IOException, Wro4jTagException {
         GroupResolver resolver = createMock(GroupResolver.class);
-        expect(resolver.getGroup("group"))
-                .andReturn(createGroup());
+        final Group group = new Group("group");
+        group.setResources(asList(
+                Resource.create("/test*.js", ResourceType.JS),
+                Resource.create("/test*.css", ResourceType.CSS)
+        ));
+        expect(resolver.getGroup("group")).andReturn(group);
 
         Wro4jTagRenderer.DirectoryLister lister = createMock(Wro4jTagRenderer.DirectoryLister.class);
+        expect(lister.list("/test*.js"))
+                .andReturn(asList("test.js", "test2.js"));
+        expect(lister.list("/test*.css"))
+                .andReturn(asList("test.css", "test2.css"));
 
         final Wro4jTagProperties properties = prepareMockProperties(true);
 
