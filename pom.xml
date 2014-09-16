@@ -33,5 +33,25 @@
                 </configuration>
             </plugin>
         </plugins>
+        <extensions>
+            <extension>
+                <groupId>org.springframework.build</groupId>
+                <artifactId>aws-maven</artifactId>
+                <version>5.0.0.RELEASE</version>
+            </extension>
+        </extensions>
     </build>
+
+    <distributionManagement>
+        <repository>
+            <id>maven-s3-release-repo</id>
+            <name>Weardex - AWS Release Repository</name>
+            <url>s3://weardex-maven-repo/release</url>
+        </repository>
+        <snapshotRepository>
+            <id>maven-s3-release-repo</id>
+            <name>Weardex - AWS Snapshot Repository</name>
+            <url>s3://weardex-maven-repo/snapshot</url>
+        </snapshotRepository>
+    </distributionManagement>
 </project>
